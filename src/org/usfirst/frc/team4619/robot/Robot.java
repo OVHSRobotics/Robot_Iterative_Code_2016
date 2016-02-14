@@ -37,6 +37,7 @@ public class Robot extends IterativeRobot {
 	VictorSP leftShooter = new VictorSP(5);
 	VictorSP rightShooter = new VictorSP(4);
 	
+	//creates the servo for pushing the ball forward
 	Servo kicker = new Servo(6);
 
 	//creates a motor for actuator
@@ -116,6 +117,7 @@ public class Robot extends IterativeRobot {
 			rightShooter.set(0);
 		}
 		
+		//pushes the ball into the motors
 		if (xBoxController.getRawButton(1))
 		{
 			kicker.set(1);
