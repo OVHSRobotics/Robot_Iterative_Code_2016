@@ -52,7 +52,8 @@ public class Robot extends IterativeRobot {
 	//creates encoders for driving
 	Encoder leftEncoderDrive;
 	Encoder rightEncoderDrive;
-	//double count = 0;
+	double count = 0;
+	double autonomousSpeed = .4;
 
 	//creates drive train
 	RobotDrive robotDrive;
@@ -139,12 +140,12 @@ public class Robot extends IterativeRobot {
 		autoSelected = (String) chooser.getSelected();
 		//		autoSelected = SmartDashboard.getString("Auto Selector", defaultAuto);
 		System.out.println("Auto selected: " + autoSelected);
-		/**leftEncoderDrive.reset();
+		leftEncoderDrive.reset();
 		rightEncoderDrive.reset();
 		frontleft = new VictorSP(2);
 		frontright = new VictorSP(1);
 		backleft = new VictorSP(0);
-		backright = new VictorSP(3);**/
+		backright = new VictorSP(3);
 	}
 
 	/**
@@ -168,13 +169,13 @@ public class Robot extends IterativeRobot {
 			backright.set(.25);
 			count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
 		}**/
-		/**while (count <= 2457.6) {
-			frontleft.set(.05);
-			frontright.set(.05);
-			backleft.set(.05);
-			backright.set(.05);
+		while (count <= 2457.6) {
+			frontleft.set(autonomousSpeed);
+			frontright.set(autonomousSpeed);
+			backleft.set(autonomousSpeed);
+			backright.set(autonomousSpeed);
 			count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
-		}**/
+		}
 
 	}
 
