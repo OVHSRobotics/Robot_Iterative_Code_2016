@@ -95,6 +95,8 @@ public class Robot extends IterativeRobot {
 
 	String after;
 	String before;
+	private double motornotspinSpeed;
+	private double halfrotationSpeed;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -205,7 +207,6 @@ public class Robot extends IterativeRobot {
 		//robotDrive.tankDrive(xBoxController, rightJoystick, true);
 		robotDrive.arcadeDrive(xBoxController.getRawAxis(leftJoyStickYAxis),
 				xBoxController.getRawAxis(rightJoyStickXAxis), true);
-		System.out.println("Left Grayhill: " + leftEncoderDrive.get() + "\nRight Grayhill: " + rightEncoderDrive.get());
 		//1228.8 per rotation
 
 		//Shoots the ball
@@ -255,6 +256,15 @@ public class Robot extends IterativeRobot {
 		//outputs encoder value of left motor 
 		SmartDashboard.putNumber("Left Driving Encoder: ", leftEncoderDrive.get());
 		
+		//outputs various speeds
+		SmartDashboard.putNumber("Intake Speed: ", intakeSpeed);
+		SmartDashboard.putNumber("Shoot Speed: ", shootSpeed);
+		SmartDashboard.putNumber("Actuation Speed: ", actuationSpeed);
+		SmartDashboard.putNumber("Motor Not Spin Speed: ", motornotspinSpeed);
+		SmartDashboard.putNumber("Half Rotation Speed: ", halfrotationSpeed);
+		SmartDashboard.putNumber("No Rotation Speed: ", noRotation);
+		SmartDashboard.putNumber("Servo Power: ", servoPower);
+
 		/**
 		//encoder
 		((CANTalon) actuator).configNominalOutputVoltage(0, 0);
