@@ -25,8 +25,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * directory.
  */
 public class Robot extends IterativeRobot {
-	final String defaultAuto = "Default";
-	final String customAuto = "My Auto";
+	final String spyZoneShoot = "Spy Zone Shoot";
+	final String touchDefenses = "Touch Defenses";
+	final String pastLowBar = "Low Bar";
 	String autoSelected;
 	SendableChooser chooser;
 
@@ -101,8 +102,9 @@ public class Robot extends IterativeRobot {
 	 */
 	public void robotInit() {
 		chooser = new SendableChooser();
-		chooser.addDefault("Default Auto", defaultAuto);
-		chooser.addObject("My Auto", customAuto);
+		chooser.addDefault(touchDefenses, touchDefenses);
+		chooser.addObject(spyZoneShoot, spyZoneShoot);
+		chooser.addObject(pastLowBar, pastLowBar);
 		SmartDashboard.putData("Auto choices", chooser);
 		leftDoubleSolenoidValve = new DoubleSolenoid(0,1);
 		rightDoubleSolenoidValve = new DoubleSolenoid(6,7);
@@ -153,12 +155,29 @@ public class Robot extends IterativeRobot {
 	 */
 	public void autonomousPeriodic() {
 		switch(autoSelected) {
-		case customAuto:
-			//Put custom auto code here   
+		case spyZoneShoot:
+			((CANTalon) actuator).set(60);
+			shoot();
+			Timer.delay(.01);
+			kicker.set(halfRotation);
 			break;
-		case defaultAuto:
-		default:
-			//Put default auto code here
+		case touchDefenses:
+			if (count <= 2457.6) {
+				frontleft.set(autonomousSpeed);
+				frontright.set(autonomousSpeed);
+				backleft.set(autonomousSpeed);
+				backright.set(autonomousSpeed);
+				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
+			}
+			break;
+		case pastLowBar:
+			if (count <= 9830.4) {
+				frontleft.set(autonomousSpeed);
+				frontright.set(autonomousSpeed);
+				backleft.set(autonomousSpeed);
+				backright.set(autonomousSpeed);
+				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
+			}
 			break;
 		}
 		/**
@@ -192,19 +211,16 @@ public class Robot extends IterativeRobot {
 		//Shoots the ball
 		if (xBoxController.getRawAxis(rightTrigger)>pressed)
 		{
-			leftShooter.set(-shootSpeed);
-			rightShooter.set(-shootSpeed);
+			shoot();
 		}
 		//intakes the ball
 		else if (xBoxController.getRawAxis(leftTrigger)>pressed)
 		{
-			leftShooter.set(intakeSpeed);
-			rightShooter.set(intakeSpeed);
+			intake();
 		}
 		else
 		{
-			leftShooter.set(motorNotSpin);
-			rightShooter.set(motorNotSpin);
+			stopShooter();
 		}
 		//changes the intake speed
 		/**if (xBoxController.getRawButton(7)&&intakeSpeed+.05<=1)
@@ -214,7 +230,7 @@ public class Robot extends IterativeRobot {
 		}
 		else if (xBoxController.getRawButton(8)&& intakeSpeed-.05>=0)
 		{
-			intakeSpeed -= .05;
+			intakeSpeed -= .05; 
 			System.out.println("intake:" + intakeSpeed);
 		}
 		 **/
@@ -229,10 +245,16 @@ public class Robot extends IterativeRobot {
 		}
 		kicker.set(servoPower);
 
-		//outputs encoder value ofr actuating arm
+		//outputs encoder value of actuating arm
 		((CANTalon) actuator).setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
 		SmartDashboard.putNumber("Actuator Encoder: ", ((CANTalon) actuator).getEncPosition());
 
+		//outputs encoder value of right motor
+		SmartDashboard.putNumber("Right Driving Encoder: ", rightEncoderDrive.get());
+		
+		//outputs encoder value of left motor 
+		SmartDashboard.putNumber("Left Driving Encoder: ", leftEncoderDrive.get());
+		
 		/**
 		//encoder
 		((CANTalon) actuator).configNominalOutputVoltage(0, 0);
@@ -293,6 +315,21 @@ public class Robot extends IterativeRobot {
 
 	}
 
+	public void shoot() {
+		leftShooter.set(-shootSpeed);
+		rightShooter.set(-shootSpeed);
+	}
+	
+	public void intake() {
+		leftShooter.set(intakeSpeed);
+		rightShooter.set(intakeSpeed);
+	}
+	
+	public void stopShooter() {
+		leftShooter.set(0);
+		rightShooter.set(0);
+	}
+	
 	/**
 	public void setShooterAngle(int wantedAngle) {
 		int angle = (wantedAngle*4096*16)/(360*22);
