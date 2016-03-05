@@ -28,6 +28,7 @@ public class Robot extends IterativeRobot {
 	final String spyZoneShoot = "Spy Zone Shoot";
 	final String touchDefenses = "Touch Defenses";
 	final String pastLowBar = "Low Bar";
+	final String defaultCommand = "Default Command";
 	String autoSelected;
 	SendableChooser chooser;
 
@@ -104,7 +105,8 @@ public class Robot extends IterativeRobot {
 	 */
 	public void robotInit() {
 		chooser = new SendableChooser();
-		chooser.addDefault(touchDefenses, touchDefenses);
+		chooser.addDefault(defaultCommand, defaultCommand);
+		chooser.addObject(touchDefenses, touchDefenses);
 		chooser.addObject(spyZoneShoot, spyZoneShoot);
 		chooser.addObject(pastLowBar, pastLowBar);
 		SmartDashboard.putData("Auto choices", chooser);
@@ -145,18 +147,16 @@ public class Robot extends IterativeRobot {
 		//		autoSelected = SmartDashboard.getString("Auto Selector", defaultAuto);
 		System.out.println("Auto selected: " + autoSelected);
 		leftEncoderDrive.reset();
-		rightEncoderDrive.reset();
-		frontleft = new VictorSP(2);
-		frontright = new VictorSP(1);
-		backleft = new VictorSP(0);
-		backright = new VictorSP(3);
-	}
+		rightEncoderDrive.reset();	}
 
 	/**
 	 * This function is called periodically during autonomous
 	 */
 	public void autonomousPeriodic() {
 		switch(autoSelected) {
+		case defaultCommand:
+			
+			break;
 		case spyZoneShoot:
 			((CANTalon) actuator).set(60);
 			shoot();
@@ -171,6 +171,12 @@ public class Robot extends IterativeRobot {
 				backright.set(autonomousSpeed);
 				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
 			}
+			else {
+				frontleft.set(0);
+				frontright.set(0);
+				backleft.set(0);
+				backright.set(0);
+			}
 			break;
 		case pastLowBar:
 			if (count <= 9830.4) {
@@ -180,22 +186,13 @@ public class Robot extends IterativeRobot {
 				backright.set(autonomousSpeed);
 				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
 			}
+			else {
+				frontleft.set(0);
+				frontright.set(0);
+				backleft.set(0);
+				backright.set(0);
+			}
 			break;
-		}
-		/**
-		if(count <= 2457.6) {
-			frontleft.set(.25);
-			frontright.set(.25);
-			backleft.set(.25);
-			backright.set(.25);
-			count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
-		}**/
-		while (count <= 2457.6) {
-			frontleft.set(autonomousSpeed);
-			frontright.set(autonomousSpeed);
-			backleft.set(autonomousSpeed);
-			backright.set(autonomousSpeed);
-			count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
 		}
 
 	}
