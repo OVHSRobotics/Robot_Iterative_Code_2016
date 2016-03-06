@@ -41,7 +41,8 @@ public class Robot extends IterativeRobot {
 
 	//creates controllers
 	Joystick xBoxController;
-
+	Joystick attack3;
+	
 	//creates speed controllers
 	SpeedController frontleft, 
 	frontright, 
@@ -68,13 +69,14 @@ public class Robot extends IterativeRobot {
 
 	//creates variables for shooting
 	double intakeSpeed = 0.8;
-	double shootSpeed = 1;
+	double shootSpeed = .8;
 	double actuationSpeed = .25;
 	int motorNotSpin = 0;
 	double halfRotation = .7;
 	int noRotation = 0;
 	double servoPower = 0;
-
+	double increaseRatio = .01;
+	
 	//create variables for xbox buttons
 	int A = 1;
 	int B = 2;
@@ -85,6 +87,19 @@ public class Robot extends IterativeRobot {
 	int Back = 7;
 	int Start = 8;
 
+	//creates variables for ATK3 buttons
+	int trigger = 1;
+	int button2 = 2;
+	int button3 = 3;
+	int button4 = 4;
+	int button5 = 5;
+	int button6 = 6;
+	int button7 = 7;
+	int button8 = 8;
+	int button9 = 9;
+	int button10 = 10;
+	int button11 = 11;
+	
 	//creates variables for xbox axes
 	int leftJoyStickYAxis = 1;
 	int leftTrigger = 2;
@@ -126,6 +141,7 @@ public class Robot extends IterativeRobot {
 		//rightEncoderDrive.reset();
 		robotDrive = new RobotDrive(frontleft,backleft,frontright,backright);
 		xBoxController = new Joystick(0);
+		attack3 = new Joystick(1);
 		airCompressor = new Compressor();
 		/**((CANTalon) actuator).ClearIaccum();
 		before = "before: " + ((CANTalon) actuator).getEncPosition();
@@ -220,18 +236,6 @@ public class Robot extends IterativeRobot {
 		{
 			stopShooter();
 		}
-		//changes the intake speed
-		/**if (xBoxController.getRawButton(7)&&intakeSpeed+.05<=1)
-		{
-			intakeSpeed += .05;
-			System.out.println("intake:" + intakeSpeed);
-		}
-		else if (xBoxController.getRawButton(8)&& intakeSpeed-.05>=0)
-		{
-			intakeSpeed -= .05; 
-			System.out.println("intake:" + intakeSpeed);
-		}
-		 **/
 
 		if (xBoxController.getRawButton(A))
 		{
@@ -300,7 +304,24 @@ public class Robot extends IterativeRobot {
 		{
 			actuator.set(motorNotSpin);
 		}
-
+		
+		//creates buttons for increase/decrese shooting/intake speed
+		if(attack3.getRawButton(button11))
+		{
+			increaseShootingSpeed();
+		}
+		if(attack3.getRawButton(button10))
+		{
+			decreaseShootingSpeed();
+		}
+		if(attack3.getRawButton(button6))
+		{
+			increaseIntakeSpeed();
+		}
+		if(attack3.getRawButton(button7))
+		{
+			decreaseIntakeSpeed();
+		}
 		//created compressor 
 		airCompressor.setClosedLoopControl(true);
 
@@ -337,6 +358,23 @@ public class Robot extends IterativeRobot {
 		rightShooter.set(0);
 	}
 	
+	public void increaseShootingSpeed(){
+		if (shootSpeed >= 0 && shootSpeed <= 1)
+			shootSpeed -= increaseRatio;
+	}
+	
+	public void decreaseShootingSpeed(){
+		if (shootSpeed >= 0 && shootSpeed <= 1)
+			shootSpeed += increaseRatio;
+	}
+	public void increaseIntakeSpeed(){
+		if (intakeSpeed >= 0 && intakeSpeed <= 1)
+			intakeSpeed += increaseRatio;
+	}
+	public void decreaseIntakeSpeed(){
+		if (intakeSpeed >= 0 && intakeSpeed <= 1)
+			intakeSpeed -= increaseRatio;
+	}
 	/**
 	public void setShooterAngle(int wantedAngle) {
 		int angle = (wantedAngle*4096*16)/(360*22);
