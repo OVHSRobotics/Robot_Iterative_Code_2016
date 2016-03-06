@@ -36,6 +36,8 @@ public class Robot extends IterativeRobot {
 	DoubleSolenoid leftDoubleSolenoidValve;
 	DoubleSolenoid rightDoubleSolenoidValve;
 
+	StringBuilder sb;
+	
 	//creates air compressor
 	Compressor airCompressor;
 
@@ -49,8 +51,8 @@ public class Robot extends IterativeRobot {
 	backleft, 
 	backright, 
 	leftShooter, 
-	rightShooter, 
-	actuator;
+	rightShooter; 
+	CANTalon actuator;
 
 	//creates encoders for driving
 	Encoder leftEncoderDrive;
@@ -60,6 +62,7 @@ public class Robot extends IterativeRobot {
 
 	//creates drive train
 	RobotDrive robotDrive;
+	int loopCounter = 0;
 
 	//creates servo for pushing the ball
 	Servo kicker;
@@ -107,7 +110,7 @@ public class Robot extends IterativeRobot {
 	int rightJoyStickXAxis = 4;
 
 	//encoder variables
-	double p = .005, i = 0, d = 0;
+	double p = .1, i = 0, d = 0, f = 0;
 
 	String after;
 	String before;
@@ -143,10 +146,28 @@ public class Robot extends IterativeRobot {
 		xBoxController = new Joystick(0);
 		attack3 = new Joystick(1);
 		airCompressor = new Compressor();
-		/**((CANTalon) actuator).ClearIaccum();
-		before = "before: " + ((CANTalon) actuator).getEncPosition();
-		((CANTalon) actuator).set(0);
-		after = "After: " + ((CANTalon) actuator).getEncPosition();**/
+		sb = new StringBuilder();
+	
+		//int absolutePosition = actuator.getPulseWidthPosition() & 0xFFF;
+		//actuator.setEncPosition(absolutePosition);
+
+		actuator.reset();
+		actuator.enable();
+		
+		actuator.setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
+		actuator.reverseSensor(true);
+
+		actuator.configNominalOutputVoltage(+0f, -0f);
+		actuator.configPeakOutputVoltage(+6f,-6f);
+		actuator.setAllowableClosedLoopErr(0);
+
+		actuator.setProfile(0);
+		actuator.setF(f);
+		actuator.setP(p);
+		actuator.setI(i);
+		actuator.setD(d);
+
+		actuator.changeControlMode(TalonControlMode.Position);
 	}
 
 	/**
@@ -280,9 +301,6 @@ public class Robot extends IterativeRobot {
 		else if(xBoxController.getRawButton(LBumper)) {
 			((CANTalon) actuator).set(0);
 		}
-		,,
-		.
-
 
 		if(xBoxController.getRawButton(Start)) {
 			setShooterAngle(30);
@@ -375,10 +393,30 @@ public class Robot extends IterativeRobot {
 		if (intakeSpeed >= 0 && intakeSpeed <= 1)
 			intakeSpeed -= increaseRatio;
 	}
-	/**
-	public void setShooterAngle(int wantedAngle) {
-		int angle = (wantedAngle*4096*16)/(360*22);
-		((CANTalon) actuator).setPosition(angle);
-	}**/
+	public void actuateArm() {
+		//encoder
+		double motorOutput = actuator.getOutputVoltage()/ actuator.getBusVoltage();
+
+		sb.append("\tout: ");
+		sb.append(motorOutput + "\n");
+		sb.append("\tpos");
+		sb.append(actuator.getPosition() + "\n");
+
+		sb.append("\terrNative");
+		sb.append(actuator.getClosedLoopError() + "\n");
+		
+		if(xBoxController.getRawButton(RBumper)) {
+			actuator.set(.1);
+		} 
+		else if(xBoxController.getRawButton(LBumper)) {
+			actuator.set(0);
+		}
+		else {
+			actuator.changeControlMode(TalonControlMode.Position);
+		}
+
+			System.out.println(sb.toString());
+			loopCounter = 0;
+		}
 
 }
