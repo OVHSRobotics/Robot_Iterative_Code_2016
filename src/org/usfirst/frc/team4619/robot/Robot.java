@@ -77,13 +77,13 @@ public class Robot extends IterativeRobot {
 
 	//creates variables for shooting
 	double intakeSpeed = 0.8;
-	double shootSpeed = .8;
+	double shootSpeed = 1;
 	double actuationSpeed = .25;
 	int motorNotSpin = 0;
 	double halfRotation = .7;
 	int noRotation = 0;
 	double servoPower = 0;
-	double increaseRatio = .01;
+	double increaseRatio = .002;
 	
 	//create variables for xbox buttons
 	int A = 1;
@@ -94,7 +94,10 @@ public class Robot extends IterativeRobot {
 	int RBumper = 6;
 	int Back = 7;
 	int Start = 8;
-
+	
+	//creates start time
+	long startTime;
+	
 	//creates variables for ATK3 buttons
 	int trigger = 1;
 	int button2 = 2;
@@ -193,7 +196,10 @@ public class Robot extends IterativeRobot {
 		//		autoSelected = SmartDashboard.getString("Auto Selector", defaultAuto);
 		System.out.println("Auto selected: " + autoSelected);
 		leftEncoderDrive.reset();
-		rightEncoderDrive.reset();	}
+		rightEncoderDrive.reset();
+		
+		startTime = System.currentTimeMillis();
+	}
 
 	/**
 	 * This function is called periodically during autonomous
@@ -202,7 +208,19 @@ public class Robot extends IterativeRobot {
 		smartDashboardOutput();
 		switch(autoSelected) {
 		case defaultCommand:
-			
+			if (System.currentTimeMillis() - startTime < 2500) {
+				frontleft.set(autonomousSpeed);
+				frontright.set(autonomousSpeed);
+				backleft.set(autonomousSpeed);
+				backright.set(autonomousSpeed);
+			}
+			else
+			{
+				frontleft.set(0);
+				frontright.set(0);
+				backleft.set(0);
+				backright.set(0);
+			}
 			break;
 		case spyZoneShoot:
 			actuateArm(.45);
@@ -278,7 +296,9 @@ public class Robot extends IterativeRobot {
 		}
 		kicker.set(servoPower);
 
-		smartDashboardOutput();
+		if(loopCounter<50)
+			smartDashboardOutput();
+
 		
 		//creates buttons for increase/decrese shooting/intake speed
 		if(attack3.getRawButton(button11))
@@ -326,7 +346,6 @@ public class Robot extends IterativeRobot {
 			break;
 		}
 		
-
 	}
 
 	/**
@@ -383,7 +402,7 @@ public class Robot extends IterativeRobot {
 		actuator.set(angle);
 
 			System.out.println(sb.toString());
-			loopCounter = 0;
+			
 		}
 
 	public void smartDashboardOutput() {
@@ -406,7 +425,7 @@ public class Robot extends IterativeRobot {
 		SmartDashboard.putNumber("Servo Power: ", servoPower);
 
 		SmartDashboard.putString("Autonomous", "Commands");
-
+		loopCounter = 0;
 	}
 	
 	public void dialToActuationAngle(double dial) {
