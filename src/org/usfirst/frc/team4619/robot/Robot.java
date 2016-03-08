@@ -190,12 +190,13 @@ public class Robot extends IterativeRobot {
 	 * This function is called periodically during autonomous
 	 */
 	public void autonomousPeriodic() {
+		smartDashboardOutput();
 		switch(autoSelected) {
 		case defaultCommand:
 			
 			break;
 		case spyZoneShoot:
-			((CANTalon) actuator).set(60);
+			actuateArm(.45);
 			shoot();
 			Timer.delay(.01);
 			kicker.set(halfRotation);
@@ -268,55 +269,16 @@ public class Robot extends IterativeRobot {
 		}
 		kicker.set(servoPower);
 
-		//outputs encoder value of actuating arm
-		((CANTalon) actuator).setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
-		SmartDashboard.putNumber("Actuator Encoder: ", ((CANTalon) actuator).getEncPosition());
-
-		//outputs encoder value of right motor
-		SmartDashboard.putNumber("Right Driving Encoder: ", rightEncoderDrive.get());
-		
-		//outputs encoder value of left motor 
-		SmartDashboard.putNumber("Left Driving Encoder: ", leftEncoderDrive.get());
-		
-		//outputs various speeds
-		SmartDashboard.putNumber("Intake Speed: ", intakeSpeed);
-		SmartDashboard.putNumber("Shoot Speed: ", shootSpeed);
-		SmartDashboard.putNumber("Actuation Speed: ", actuationSpeed);
-		SmartDashboard.putNumber("Motor Not Spin Speed: ", motornotspinSpeed);
-		SmartDashboard.putNumber("Half Rotation Speed: ", halfrotationSpeed);
-		SmartDashboard.putNumber("No Rotation Speed: ", noRotation);
-		SmartDashboard.putNumber("Servo Power: ", servoPower);
-
-		/**
-		//encoder
-		((CANTalon) actuator).configNominalOutputVoltage(0, 0);
-		((CANTalon) actuator).configPeakOutputVoltage(12,-12);
-		((CANTalon) actuator).setAllowableClosedLoopErr((3*4096)/360);
-		((CANTalon) actuator).setPID(p,i,d);
-		((CANTalon) actuator).changeControlMode(TalonControlMode.Position);
-
-		if(xBoxController.getRawButton(RBumper)) {
-			((CANTalon) actuator).set(30);
-		} 
-		else if(xBoxController.getRawButton(LBumper)) {
-			((CANTalon) actuator).set(0);
-		}
-
-		if(xBoxController.getRawButton(Start)) {
-			setShooterAngle(30);
-		}
-		else if(xBoxController.getRawButton(Back)) {
-			setShooterAngle(0);
-		}**/
+		smartDashboardOutput();
 
 		//actuates the shooting arms
 		if(xBoxController.getRawButton(RBumper))
 		{
-			actuator.set(actuationSpeed);
+			actuateArm(.45);
 		}
 		else if (xBoxController.getRawButton(LBumper))
 		{
-			actuator.set(-actuationSpeed);
+			actuateArm(0);
 		}
 		else
 		{
@@ -393,7 +355,7 @@ public class Robot extends IterativeRobot {
 		if (intakeSpeed >= 0 && intakeSpeed <= 1)
 			intakeSpeed -= increaseRatio;
 	}
-	public void actuateArm() {
+	public void actuateArm(double angle) {
 		//encoder
 		double motorOutput = actuator.getOutputVoltage()/ actuator.getBusVoltage();
 
@@ -405,18 +367,32 @@ public class Robot extends IterativeRobot {
 		sb.append("\terrNative");
 		sb.append(actuator.getClosedLoopError() + "\n");
 		
-		if(xBoxController.getRawButton(RBumper)) {
-			actuator.set(.1);
-		} 
-		else if(xBoxController.getRawButton(LBumper)) {
-			actuator.set(0);
-		}
-		else {
-			actuator.changeControlMode(TalonControlMode.Position);
-		}
+		actuator.set(angle);
 
 			System.out.println(sb.toString());
 			loopCounter = 0;
 		}
 
+	public void smartDashboardOutput() {
+		//outputs encoder value of actuating arm
+		SmartDashboard.putNumber("Actuator Encoder: ", actuator.getEncPosition());
+
+		//outputs encoder value of right motor
+		SmartDashboard.putNumber("Right Driving Encoder: ", rightEncoderDrive.get());
+
+		//outputs encoder value of left motor 
+		SmartDashboard.putNumber("Left Driving Encoder: ", leftEncoderDrive.get());
+
+		//outputs various speeds
+		SmartDashboard.putNumber("Intake Speed: ", intakeSpeed);
+		SmartDashboard.putNumber("Shoot Speed: ", shootSpeed);
+		SmartDashboard.putNumber("Actuation Speed: ", actuationSpeed);
+		SmartDashboard.putNumber("Motor Not Spin Speed: ", motornotspinSpeed);
+		SmartDashboard.putNumber("Half Rotation Speed: ", halfrotationSpeed);
+		SmartDashboard.putNumber("No Rotation Speed: ", noRotation);
+		SmartDashboard.putNumber("Servo Power: ", servoPower);
+
+		SmartDashboard.putString("Autonomous", "Commands");
+
+	}
 }
