@@ -31,6 +31,11 @@ public class Robot extends IterativeRobot {
 	final String defaultCommand = "Default Command";
 	String autoSelected;
 	SendableChooser chooser;
+	
+	SendableChooser actuatorChooser;
+	String actuatorSelector;
+	final String xBoxDefault = "xBox";
+	final String attackThree = "attack3";
 
 	//creates 4 double solenoid valves for drive base and climber
 	DoubleSolenoid leftDoubleSolenoidValve;
@@ -122,6 +127,10 @@ public class Robot extends IterativeRobot {
 	 * used for any initialization code.
 	 */
 	public void robotInit() {
+		actuatorChooser = new SendableChooser();
+		actuatorChooser.addDefault(xBoxDefault, xBoxDefault);
+		actuatorChooser.addObject(attackThree, attackThree);
+		
 		chooser = new SendableChooser();
 		chooser.addDefault(defaultCommand, defaultCommand);
 		chooser.addObject(touchDefenses, touchDefenses);
@@ -270,20 +279,6 @@ public class Robot extends IterativeRobot {
 		kicker.set(servoPower);
 
 		smartDashboardOutput();
-
-		//actuates the shooting arms
-		if(xBoxController.getRawButton(RBumper))
-		{
-			actuateArm(.45);
-		}
-		else if (xBoxController.getRawButton(LBumper))
-		{
-			actuateArm(0);
-		}
-		else
-		{
-			actuator.set(motorNotSpin);
-		}
 		
 		//creates buttons for increase/decrese shooting/intake speed
 		if(attack3.getRawButton(button11))
@@ -313,6 +308,24 @@ public class Robot extends IterativeRobot {
 			leftDoubleSolenoidValve.set(DoubleSolenoid.Value.kReverse);
 			rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kReverse);
 		}
+		
+		//actuates shooting arms
+		switch(actuatorSelector) {
+		case xBoxDefault:
+			if(xBoxController.getRawButton(RBumper))
+			{
+				actuateArm(.45);
+			}
+			else if (xBoxController.getRawButton(LBumper))
+			{
+				actuateArm(0);
+			}
+			break;
+		case attackThree:
+			dialToActuationAngle(attack3.getRawAxis(2));
+			break;
+		}
+		
 
 	}
 
@@ -394,5 +407,9 @@ public class Robot extends IterativeRobot {
 
 		SmartDashboard.putString("Autonomous", "Commands");
 
+	}
+	
+	public void dialToActuationAngle(double dial) {
+		actuateArm(((((dial*-1)+1)/2)*95)/360);
 	}
 }
