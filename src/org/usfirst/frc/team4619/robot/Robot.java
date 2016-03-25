@@ -1,4 +1,3 @@
-
 package org.usfirst.frc.team4619.robot;
 
 import edu.wpi.first.wpilibj.CANTalon;
@@ -13,6 +12,7 @@ import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -25,9 +25,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * directory.
  */
 public class Robot extends IterativeRobot {
-	final String spyZoneShoot = "Spy Zone Shoot";
+	final String spyZoneHighGoal = "Spy Zone High Goal ";
+	final String spyZoneLowGoal = "Spy Zone Low Goal";
 	final String touchDefenses = "Touch Defenses";
 	final String pastLowBar = "Low Bar";
+	final String breakLowBar = "Break Low Bar";
+	final String pastMoatRock = "Moat and Rock Wall: ";
 	final String defaultCommand = "Default Command";
 	String autoSelected;
 	SendableChooser chooser;
@@ -40,6 +43,7 @@ public class Robot extends IterativeRobot {
 	//creates 4 double solenoid valves for drive base and climber
 	DoubleSolenoid leftDoubleSolenoidValve;
 	DoubleSolenoid rightDoubleSolenoidValve;
+	String shift = "";
 
 	StringBuilder sb;
 	
@@ -58,12 +62,15 @@ public class Robot extends IterativeRobot {
 	leftShooter, 
 	rightShooter; 
 	CANTalon actuator;
+	
+	//creates sensors for shooting
+	Ultrasonic distanceChecker;
 
 	//creates encoders for driving
 	Encoder leftEncoderDrive;
 	Encoder rightEncoderDrive;
 	double count = 0;
-	double autonomousSpeed = .4;
+	double autonomousSpeed = .2;
 
 	//creates drive train
 	RobotDrive robotDrive;
@@ -118,7 +125,7 @@ public class Robot extends IterativeRobot {
 	int rightJoyStickXAxis = 4;
 
 	//encoder variables
-	double p = .1, i = 0, d = 0, f = 0;
+	double p = 1, i = .001, d = 0, f = 0;
 
 	String after;
 	String before;
@@ -130,16 +137,20 @@ public class Robot extends IterativeRobot {
 	 * used for any initialization code.
 	 */
 	public void robotInit() {
+		/**
 		actuatorChooser = new SendableChooser();
 		actuatorChooser.addDefault(xBoxDefault, xBoxDefault);
 		actuatorChooser.addObject(attackThree, attackThree);
+		**/
 		
 		chooser = new SendableChooser();
 		chooser.addDefault(defaultCommand, defaultCommand);
 		chooser.addObject(touchDefenses, touchDefenses);
-		chooser.addObject(spyZoneShoot, spyZoneShoot);
+		chooser.addObject(spyZoneHighGoal, spyZoneHighGoal);
 		chooser.addObject(pastLowBar, pastLowBar);
-		SmartDashboard.putData("Auto choices", chooser);
+		chooser.addObject(spyZoneLowGoal, spyZoneLowGoal);
+		chooser.addObject(pastMoatRock, pastMoatRock);
+		
 		leftDoubleSolenoidValve = new DoubleSolenoid(0,1);
 		rightDoubleSolenoidValve = new DoubleSolenoid(6,7);
 		frontleft = new VictorSP(2);
@@ -150,27 +161,37 @@ public class Robot extends IterativeRobot {
 		rightShooter = new VictorSP(5);
 		kicker = new Servo(6);
 		actuator = new CANTalon(1);
+		
+		distanceChecker = new Ultrasonic(1,1);
+	
 		leftEncoderDrive = new Encoder(2,3);
-		rightEncoderDrive = new Encoder(0,1);
-		//leftEncoderDrive.reset();
-		//rightEncoderDrive.reset();
+		rightEncoderDrive = new Encoder(0,1, true);
+		leftEncoderDrive.reset();
+		rightEncoderDrive.reset();
+		//leftEncoderDrive.setReverseDirection(true);
+		//rightEncoderDrive.setReverseDirection(false);
+	
 		robotDrive = new RobotDrive(frontleft,backleft,frontright,backright);
 		xBoxController = new Joystick(0);
 		attack3 = new Joystick(1);
 		airCompressor = new Compressor();
 		sb = new StringBuilder();
 	
+		actuator.changeControlMode(TalonControlMode.PercentVbus);
+		actuator.set(0);
+		
 		//int absolutePosition = actuator.getPulseWidthPosition() & 0xFFF;
 		//actuator.setEncPosition(absolutePosition);
 
-		actuator.reset();
-		actuator.enable();
+		//actuator.reset();
+		//actuator.enable();
 		
+		/**
 		actuator.setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
-		actuator.reverseSensor(true);
+		actuator.reverseSensor(false);
 
 		actuator.configNominalOutputVoltage(+0f, -0f);
-		actuator.configPeakOutputVoltage(+6f,-6f);
+		actuator.configPeakOutputVoltage(+10f,-10f);
 		actuator.setAllowableClosedLoopErr(0);
 
 		actuator.setProfile(0);
@@ -180,6 +201,9 @@ public class Robot extends IterativeRobot {
 		actuator.setD(d);
 
 		actuator.changeControlMode(TalonControlMode.Position);
+		actuator.set(.5);**/
+		
+		smartDashboardOutput();
 	}
 
 	/**
@@ -192,27 +216,41 @@ public class Robot extends IterativeRobot {
 	 * If using the SendableChooser make sure to add them to the chooser code above as well.
 	 */
 	public void autonomousInit() {
-		autoSelected = (String) chooser.getSelected();
-		//		autoSelected = SmartDashboard.getString("Auto Selector", defaultAuto);
+		Object selected = chooser.getSelected();
+		if (selected != null)
+		{
+			autoSelected = (String)selected;
+		}
+		else
+		{
+			autoSelected = defaultCommand;
+		}
+		//autoSelected = defaultCommand;
+		//autoSelected = SmartDashboard.getString("Auto Selector", defaultAuto);
 		System.out.println("Auto selected: " + autoSelected);
 		leftEncoderDrive.reset();
 		rightEncoderDrive.reset();
 		
-		startTime = System.currentTimeMillis();
-	}
+		leftDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
+		rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
+		shift = "High Gear";
+		
+		startTime = System.currentTimeMillis();	
+		}
 
 	/**
 	 * This function is called periodically during autonomous
 	 */
 	public void autonomousPeriodic() {
+		System.out.println("Left Encoder: " + leftEncoderDrive.getRaw() + "\nRight Encoder: " + rightEncoderDrive.getRaw());
 		smartDashboardOutput();
 		switch(autoSelected) {
 		case defaultCommand:
 			if (System.currentTimeMillis() - startTime < 2500) {
-				frontleft.set(autonomousSpeed);
-				frontright.set(autonomousSpeed);
-				backleft.set(autonomousSpeed);
-				backright.set(autonomousSpeed);
+				frontleft.set(-autonomousSpeed);
+				frontright.set(autonomousSpeed*.9);
+				backleft.set(-autonomousSpeed);
+				backright.set(autonomousSpeed*.9);
 			}
 			else
 			{
@@ -222,19 +260,126 @@ public class Robot extends IterativeRobot {
 				backright.set(0);
 			}
 			break;
-		case spyZoneShoot:
+		case spyZoneHighGoal:
 			actuateArm(.45);
 			shoot();
-			Timer.delay(.01);
+			Timer.delay(1);
+			kicker.set(halfRotation);
+			break;
+		case spyZoneLowGoal:
+			actuator.set(-.25);
+			Timer.delay(.2);
+			actuator.set(0);
+			Timer.delay(.1);
+			shoot();
+			Timer.delay(1);
 			kicker.set(halfRotation);
 			break;
 		case touchDefenses:
-			if (count <= 2457.6) {
-				frontleft.set(autonomousSpeed);
-				frontright.set(autonomousSpeed);
+			if (leftEncoderDrive.get() <= 14500) {
+				frontleft.set(-autonomousSpeed);
+				backleft.set(-autonomousSpeed);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontleft.set(0);
+				backleft.set(0);
+			}
+			if (rightEncoderDrive.get() <= 14500) {
+				frontright.set(autonomousSpeed*.9);
+				backright.set(autonomousSpeed*.9);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontright.set(0);
+				backright.set(0);
+			}
+			break;
+		case pastLowBar:
+			autonomousSpeed = .65;
+			if (System.currentTimeMillis() - startTime < 500)
+				actuator.set(-.25);
+			else
+			{
+				actuator.set(-.1);
+			}
+			if (leftEncoderDrive.get() <= 13000.4&&System.currentTimeMillis() - startTime >= 2300) {
+	  			frontleft.set(-autonomousSpeed);
+				backleft.set(-autonomousSpeed);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontleft.set(0);
+				backleft.set(0);
+			}
+			if (rightEncoderDrive.get() <= 13000&&System.currentTimeMillis() - startTime >= 2300) {
+				frontright.set((autonomousSpeed)*.89);
+				backright.set((autonomousSpeed)*.89);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontright.set(0);
+				backright.set(0);
+			}
+			//if (rightEncoderDrive.get() > 0 && System.currentTimeMillis() - startTime >= 5000) {
+				
+			//}
+			break;
+		case breakLowBar:
+			autonomousSpeed = .65;
+			if (System.currentTimeMillis() - startTime < 500)
+				actuator.set(-.25);
+			else
+			{
+				actuator.set(-.1);
+			}
+			
+			//drives forward
+			if (leftEncoderDrive.get() <= 13000.4&&System.currentTimeMillis() - startTime >= 2300) {
+	  			frontleft.set(-autonomousSpeed);
+				backleft.set(-autonomousSpeed);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontleft.set(0);
+				backleft.set(0);
+			}
+			if (rightEncoderDrive.get() <= 13000&&System.currentTimeMillis() - startTime >= 2300) {
+				frontright.set((autonomousSpeed)*.9);
+				backright.set((autonomousSpeed)*.9);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontright.set(0);
+				backright.set(0);
+			}
+
+			//drives backward
+			if (leftEncoderDrive.get() >= 0&&System.currentTimeMillis() - startTime >= 6000) {
+	  			frontleft.set(autonomousSpeed);
 				backleft.set(autonomousSpeed);
-				backright.set(autonomousSpeed);
-				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontleft.set(0);
+				backleft.set(0);
+			}
+			if (leftEncoderDrive.get() >= 0&&System.currentTimeMillis() - startTime >= 6000) {
+				frontright.set(-(autonomousSpeed)*.9);
+				backright.set(-(autonomousSpeed)*.9);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}
+			else {
+				frontright.set(0);
+				backright.set(0);
+			}	
+			break;
+		case pastMoatRock:
+			actuator.set(.2);
+			if (leftEncoderDrive.get() <= 14000) {
+				frontleft.set(-1);
+				backleft.set(-1);
+				///count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
 			}
 			else {
 				frontleft.set(0);
@@ -242,15 +387,11 @@ public class Robot extends IterativeRobot {
 				backleft.set(0);
 				backright.set(0);
 			}
-			break;
-		case pastLowBar:
-			if (count <= 9830.4) {
-				frontleft.set(autonomousSpeed);
-				frontright.set(autonomousSpeed);
-				backleft.set(autonomousSpeed);
-				backright.set(autonomousSpeed);
-				count = (leftEncoderDrive.get() * rightEncoderDrive.get()) / 2;
-			}
+			if (rightEncoderDrive.get() <= 14000) {
+				frontright.set(.88);
+				backright.set(.88);
+				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
+			}  
 			else {
 				frontleft.set(0);
 				frontright.set(0);
@@ -270,7 +411,7 @@ public class Robot extends IterativeRobot {
 		robotDrive.arcadeDrive(xBoxController.getRawAxis(leftJoyStickYAxis),
 				xBoxController.getRawAxis(rightJoyStickXAxis), true);
 		//1228.8 per rotation
-
+  
 		//Shoots the ball
 		if (xBoxController.getRawAxis(rightTrigger)>pressed)
 		{
@@ -296,7 +437,7 @@ public class Robot extends IterativeRobot {
 		}
 		kicker.set(servoPower);
 
-		if(loopCounter<50)
+		if(loopCounter++ % 50 == 0)
 			smartDashboardOutput();
 
 		
@@ -324,27 +465,36 @@ public class Robot extends IterativeRobot {
 		if(xBoxController.getRawButton(B)){
 			leftDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
 			rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
+			shift = "High Gear";
 		}else if(xBoxController.getRawButton(X)){
 			leftDoubleSolenoidValve.set(DoubleSolenoid.Value.kReverse);
 			rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kReverse);
+			shift = "Low Gear";
 		}
 		
 		//actuates shooting arms
+		/**
 		switch(actuatorSelector) {
-		case xBoxDefault:
+		case xBoxDefault:**/
 			if(xBoxController.getRawButton(RBumper))
 			{
-				actuateArm(.45);
+				actuator.set(.60);
+				//actuateArm(.45);
 			}
 			else if (xBoxController.getRawButton(LBumper))
 			{
-				actuateArm(0);
+				actuator.set(-.25);
+				//actuateArm(0);
 			}
-			break;
+			else 
+			{
+				actuator.set(0);
+			}
+			/**break;
 		case attackThree:
 			dialToActuationAngle(attack3.getRawAxis(2));
 			break;
-		}
+		}**/
 		
 	}
 
@@ -352,6 +502,8 @@ public class Robot extends IterativeRobot {
 	 * This function is called periodically during test mode
 	 */
 	public void testPeriodic() {
+		//created compressor 
+		airCompressor.setClosedLoopControl(true);
 
 	}
 
@@ -406,9 +558,12 @@ public class Robot extends IterativeRobot {
 		}
 
 	public void smartDashboardOutput() {
+		System.out.println("Printing smart dashboard output");
 		//outputs encoder value of actuating arm
 		SmartDashboard.putNumber("Actuator Encoder: ", actuator.getEncPosition());
 
+		SmartDashboard.putString("DEFENSES", "LIFT ARMS");
+		
 		//outputs encoder value of right motor
 		SmartDashboard.putNumber("Right Driving Encoder: ", rightEncoderDrive.get());
 
@@ -424,8 +579,12 @@ public class Robot extends IterativeRobot {
 		SmartDashboard.putNumber("No Rotation Speed: ", noRotation);
 		SmartDashboard.putNumber("Servo Power: ", servoPower);
 
+		SmartDashboard.putString("Gearbox Position", shift);
+		
 		SmartDashboard.putString("Autonomous", "Commands");
-		loopCounter = 0;
+		
+		SmartDashboard.putData("Auto choices", chooser);
+		//loopCounter = 0;
 	}
 	
 	public void dialToActuationAngle(double dial) {
