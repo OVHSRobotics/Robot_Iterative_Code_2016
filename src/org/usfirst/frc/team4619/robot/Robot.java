@@ -1,6 +1,8 @@
 package org.usfirst.frc.team4619.robot;
 
+import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.CANTalon;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.CANTalon.FeedbackDevice;
 import edu.wpi.first.wpilibj.CANTalon.TalonControlMode;
 import edu.wpi.first.wpilibj.Compressor;
@@ -34,7 +36,7 @@ public class Robot extends IterativeRobot {
 	final String defaultCommand = "Default Command";
 	String autoSelected;
 	SendableChooser chooser;
-	
+
 	SendableChooser actuatorChooser;
 	String actuatorSelector;
 	final String xBoxDefault = "xBox";
@@ -46,14 +48,14 @@ public class Robot extends IterativeRobot {
 	String shift = "";
 
 	StringBuilder sb;
-	
+
 	//creates air compressor
 	Compressor airCompressor;
 
 	//creates controllers
 	Joystick xBoxController;
 	Joystick attack3;
-	
+
 	//creates speed controllers
 	SpeedController frontleft, 
 	frontright, 
@@ -62,7 +64,7 @@ public class Robot extends IterativeRobot {
 	leftShooter, 
 	rightShooter; 
 	CANTalon actuator;
-	
+
 	//creates sensors for shooting
 	Ultrasonic distanceChecker;
 
@@ -91,7 +93,7 @@ public class Robot extends IterativeRobot {
 	int noRotation = 0;
 	double servoPower = 0;
 	double increaseRatio = .002;
-	
+
 	//create variables for xbox buttons
 	int A = 1;
 	int B = 2;
@@ -101,10 +103,10 @@ public class Robot extends IterativeRobot {
 	int RBumper = 6;
 	int Back = 7;
 	int Start = 8;
-	
+
 	//creates start time
 	long startTime;
-	
+
 	//creates variables for ATK3 buttons
 	int trigger = 1;
 	int button2 = 2;
@@ -117,7 +119,7 @@ public class Robot extends IterativeRobot {
 	int button9 = 9;
 	int button10 = 10;
 	int button11 = 11;
-	
+
 	//creates variables for xbox axes
 	int leftJoyStickYAxis = 1;
 	int leftTrigger = 2;
@@ -125,13 +127,31 @@ public class Robot extends IterativeRobot {
 	int rightJoyStickXAxis = 4;
 
 	//encoder variables
-	double p = 1, i = .001, d = 0, f = 0;
+	AnalogInput Ultrasonic;
+	final int ultrasonicChannel = 0;
+
+	CameraServer camera;
+
+	double p = 43, i = 0.001, d = 1000000000, f = 0;
 
 	String after;
 	String before;
 	private double motornotspinSpeed;
 	private double halfrotationSpeed;
 
+	double shootingSpeed = -.8;
+
+	double topActuator;
+	double bottomActuator;
+	
+	/**
+	 * 0 = position
+	 * 1 = percentvbus
+	 * 
+	**/
+	int controlMode = 0;
+	
+	double sonicDistance;
 	/**
 	 * This function is run when the robot is first started up and should be
 	 * used for any initialization code.
@@ -141,8 +161,8 @@ public class Robot extends IterativeRobot {
 		actuatorChooser = new SendableChooser();
 		actuatorChooser.addDefault(xBoxDefault, xBoxDefault);
 		actuatorChooser.addObject(attackThree, attackThree);
-		**/
-		
+		 **/
+
 		chooser = new SendableChooser();
 		chooser.addDefault(defaultCommand, defaultCommand);
 		chooser.addObject(touchDefenses, touchDefenses);
@@ -150,7 +170,7 @@ public class Robot extends IterativeRobot {
 		chooser.addObject(pastLowBar, pastLowBar);
 		chooser.addObject(spyZoneLowGoal, spyZoneLowGoal);
 		chooser.addObject(pastMoatRock, pastMoatRock);
-		
+
 		leftDoubleSolenoidValve = new DoubleSolenoid(0,1);
 		rightDoubleSolenoidValve = new DoubleSolenoid(6,7);
 		frontleft = new VictorSP(2);
@@ -161,37 +181,43 @@ public class Robot extends IterativeRobot {
 		rightShooter = new VictorSP(5);
 		kicker = new Servo(6);
 		actuator = new CANTalon(1);
-		
+
 		distanceChecker = new Ultrasonic(1,1);
-	
+
 		leftEncoderDrive = new Encoder(2,3);
 		rightEncoderDrive = new Encoder(0,1, true);
 		leftEncoderDrive.reset();
 		rightEncoderDrive.reset();
 		//leftEncoderDrive.setReverseDirection(true);
 		//rightEncoderDrive.setReverseDirection(false);
-	
+
 		robotDrive = new RobotDrive(frontleft,backleft,frontright,backright);
 		xBoxController = new Joystick(0);
 		attack3 = new Joystick(1);
 		airCompressor = new Compressor();
 		sb = new StringBuilder();
-	
+
 		actuator.changeControlMode(TalonControlMode.PercentVbus);
 		actuator.set(0);
-		
-		//int absolutePosition = actuator.getPulseWidthPosition() & 0xFFF;
-		//actuator.setEncPosition(absolutePosition);
 
-		//actuator.reset();
-		//actuator.enable();
-		
-		/**
+		Ultrasonic = new AnalogInput(ultrasonicChannel);
+		Ultrasonic.getVoltage();
+		System.out.print("Volatage: " + Ultrasonic);
+
+		camera = CameraServer.getInstance();
+		camera.setQuality(50);
+		//the camera name (ex "cam0") can be found through the roborio web interface
+		camera.startAutomaticCapture("cam0");
+
+		/**actuator.setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
+		actuator.changeControlMode(TalonControlMode.PercentVbus);
+		actuator.set(0);**/
+
 		actuator.setFeedbackDevice(FeedbackDevice.CtreMagEncoder_Absolute);
 		actuator.reverseSensor(false);
 
 		actuator.configNominalOutputVoltage(+0f, -0f);
-		actuator.configPeakOutputVoltage(+10f,-10f);
+		actuator.configPeakOutputVoltage(+8f,-1.8f);
 		actuator.setAllowableClosedLoopErr(0);
 
 		actuator.setProfile(0);
@@ -201,8 +227,15 @@ public class Robot extends IterativeRobot {
 		actuator.setD(d);
 
 		actuator.changeControlMode(TalonControlMode.Position);
-		actuator.set(.5);**/
+		actuator.set(0);
+
+		topActuator = actuator.getPosition()-.005;
+		bottomActuator = topActuator-.31;
 		
+		/**actuator.changeControlMode(TalonControlMode.PercentVbus);
+		actuator.set(0);
+		  **/
+
 		smartDashboardOutput();
 	}
 
@@ -230,13 +263,13 @@ public class Robot extends IterativeRobot {
 		System.out.println("Auto selected: " + autoSelected);
 		leftEncoderDrive.reset();
 		rightEncoderDrive.reset();
-		
+
 		leftDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
 		rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kForward);
 		shift = "High Gear";
-		
+
 		startTime = System.currentTimeMillis();	
-		}
+	}
 
 	/**
 	 * This function is called periodically during autonomous
@@ -304,7 +337,7 @@ public class Robot extends IterativeRobot {
 				actuator.set(-.1);
 			}
 			if (leftEncoderDrive.get() <= 13000.4&&System.currentTimeMillis() - startTime >= 2300) {
-	  			frontleft.set(-autonomousSpeed);
+				frontleft.set(-autonomousSpeed);
 				backleft.set(-autonomousSpeed);
 				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
 			}
@@ -322,7 +355,7 @@ public class Robot extends IterativeRobot {
 				backright.set(0);
 			}
 			//if (rightEncoderDrive.get() > 0 && System.currentTimeMillis() - startTime >= 5000) {
-				
+
 			//}
 			break;
 		case breakLowBar:
@@ -333,10 +366,10 @@ public class Robot extends IterativeRobot {
 			{
 				actuator.set(-.1);
 			}
-			
+
 			//drives forward
 			if (leftEncoderDrive.get() <= 13000.4&&System.currentTimeMillis() - startTime >= 2300) {
-	  			frontleft.set(-autonomousSpeed);
+				frontleft.set(-autonomousSpeed);
 				backleft.set(-autonomousSpeed);
 				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
 			}
@@ -356,7 +389,7 @@ public class Robot extends IterativeRobot {
 
 			//drives backward
 			if (leftEncoderDrive.get() >= 0&&System.currentTimeMillis() - startTime >= 6000) {
-	  			frontleft.set(autonomousSpeed);
+				frontleft.set(autonomousSpeed);
 				backleft.set(autonomousSpeed);
 				//count = (leftEncoderDrive.get() + rightEncoderDrive.get()) / 2;
 			}
@@ -411,7 +444,14 @@ public class Robot extends IterativeRobot {
 		robotDrive.arcadeDrive(xBoxController.getRawAxis(leftJoyStickYAxis),
 				xBoxController.getRawAxis(rightJoyStickXAxis), true);
 		//1228.8 per rotation
-  
+		
+		if(controlMode == 0) {
+			actuator.changeControlMode(TalonControlMode.Position);
+		}
+		else if(controlMode == 1) {
+			actuator.changeControlMode(TalonControlMode.PercentVbus);
+		}
+
 		//Shoots the ball
 		if (xBoxController.getRawAxis(rightTrigger)>pressed)
 		{
@@ -440,7 +480,7 @@ public class Robot extends IterativeRobot {
 		if(loopCounter++ % 50 == 0)
 			smartDashboardOutput();
 
-		
+
 		//creates buttons for increase/decrese shooting/intake speed
 		if(attack3.getRawButton(button11))
 		{
@@ -471,31 +511,29 @@ public class Robot extends IterativeRobot {
 			rightDoubleSolenoidValve.set(DoubleSolenoid.Value.kReverse);
 			shift = "Low Gear";
 		}
-		
-		//actuates shooting arms
-		/**
-		switch(actuatorSelector) {
-		case xBoxDefault:**/
-			if(xBoxController.getRawButton(RBumper))
-			{
-				actuator.set(.60);
-				//actuateArm(.45);
-			}
-			else if (xBoxController.getRawButton(LBumper))
-			{
-				actuator.set(-.25);
-				//actuateArm(0);
-			}
-			else 
-			{
-				actuator.set(0);
-			}
-			/**break;
-		case attackThree:
-			dialToActuationAngle(attack3.getRawAxis(2));
-			break;
-		}**/
-		
+
+		//actuates arm
+    	if(xBoxController.getRawButton(4)){
+    		controlMode = 0;
+    		sonicToActuationAngle();
+        }
+        else if(xBoxController.getRawButton(6)){
+        	controlMode = 0;
+        	actuator.set(topActuator);
+        }
+        /**else{
+        	actuator.set(0);
+        }**/
+
+    	if(xBoxController.getRawButton(5)){
+    		controlMode = 1;
+        	actuator.set(-.25);
+        }
+    	else {
+    		controlMode = 1;
+    		actuator.set(0);
+    	}
+
 	}
 
 	/**
@@ -511,22 +549,22 @@ public class Robot extends IterativeRobot {
 		leftShooter.set(-shootSpeed);
 		rightShooter.set(-shootSpeed);
 	}
-	
+
 	public void intake() {
 		leftShooter.set(intakeSpeed);
 		rightShooter.set(intakeSpeed);
 	}
-	
+
 	public void stopShooter() {
 		leftShooter.set(0);
 		rightShooter.set(0);
 	}
-	
+
 	public void increaseShootingSpeed(){
 		if (shootSpeed >= 0 && shootSpeed <= 1)
 			shootSpeed -= increaseRatio;
 	}
-	
+
 	public void decreaseShootingSpeed(){
 		if (shootSpeed >= 0 && shootSpeed <= 1)
 			shootSpeed += increaseRatio;
@@ -550,12 +588,12 @@ public class Robot extends IterativeRobot {
 
 		sb.append("\terrNative");
 		sb.append(actuator.getClosedLoopError() + "\n");
-		
+
 		actuator.set(angle);
 
-			System.out.println(sb.toString());
-			
-		}
+		System.out.println(sb.toString());
+
+	}
 
 	public void smartDashboardOutput() {
 		System.out.println("Printing smart dashboard output");
@@ -563,7 +601,7 @@ public class Robot extends IterativeRobot {
 		SmartDashboard.putNumber("Actuator Encoder: ", actuator.getEncPosition());
 
 		SmartDashboard.putString("DEFENSES", "LIFT ARMS");
-		
+
 		//outputs encoder value of right motor
 		SmartDashboard.putNumber("Right Driving Encoder: ", rightEncoderDrive.get());
 
@@ -580,14 +618,24 @@ public class Robot extends IterativeRobot {
 		SmartDashboard.putNumber("Servo Power: ", servoPower);
 
 		SmartDashboard.putString("Gearbox Position", shift);
-		
+
 		SmartDashboard.putString("Autonomous", "Commands");
-		
+
 		SmartDashboard.putData("Auto choices", chooser);
 		//loopCounter = 0;
 	}
-	
+
 	public void dialToActuationAngle(double dial) {
 		actuateArm(((((dial*-1)+1)/2)*95)/360);
+	}
+	
+	public void sonicToActuationAngle() {
+		double getVoltage = Ultrasonic.getVoltage();
+    	double ultrasonicDistance = ((((getVoltage)/(.005))*5)/25.4)/12;
+    		actuator.changeControlMode(TalonControlMode.Position);
+    		sonicDistance = ultrasonicDistance;
+    		double actuationAngle = (-.0014*sonicDistance*sonicDistance)+(.0275*sonicDistance)+.9266;
+        	if(actuationAngle<topActuator&&actuationAngle>(bottomActuator))
+        		actuator.set(actuationAngle);	
 	}
 }
